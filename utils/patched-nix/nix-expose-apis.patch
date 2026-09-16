@@ -51,31 +51,30 @@ diff --git a/src/libutil-c/nix_api_util.cc b/src/libutil-c/nix_api_util.cc
 index 2254f18fa..5ade80343 100644
 --- a/src/libutil-c/nix_api_util.cc
 +++ b/src/libutil-c/nix_api_util.cc
-@@ -3,6 +3,10 @@
+@@ -3,6 +3,9 @@
  #include "nix/util/error.hh"
  #include "nix_api_util_internal.h"
  #include "nix/util/util.hh"
 +#include "nix/util/source-path.hh"
-+#include "nix/util/posix-source-accessor.hh"
 +#include "nix/util/file-content-address.hh"
 +#include "nix/util/signature/local-keys.hh"
  
  #include <cxxabi.h>
  #include <typeinfo>
-@@ -150,6 +154,17 @@ nix_err nix_err_code(const nix_c_context * read_context)
+@@ -150,6 +153,17 @@ nix_err nix_err_code(const nix_c_context * read_context)
      return read_context->last_err_code;
  }
  
 +char * hash_path(const char * path) {
 +    nix::Hash hash = nix::hashPath(
-+        nix::PosixSourceAccessor::createAtRoot(path),
++        nix::SourcePath{nix::getFSSourceAccessor(), nix::CanonPath(path)},
 +        nix::FileIngestionMethod::NixArchive,
 +        nix::HashAlgorithm::SHA256).first;
 +    return strdup(hash.to_string(nix::HashFormat::Nix32, false).c_str());
 +}
 +
 +char * sign_detached(const char * secret_key, const char * data) {
-+    return strdup(nix::SecretKey(secret_key).signDetached(data).c_str());
++    return strdup(nix::SecretKey(secret_key).signDetached(data).sig.c_str());
 +}
  // internal
  nix_err call_nix_get_string_callback(const std::string str, nix_get_string_callback callback, void * user_data)
